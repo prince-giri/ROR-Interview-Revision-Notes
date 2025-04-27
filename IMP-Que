@@ -1,0 +1,1697 @@
+Q1 what is the differnce between has_many :through and has_and_belongs_to_many ? also state which one is better?
+
+ Ans: there are serveral differences in this associtaion
+    has_many :through
+
+      1 In this association we required three model (programmer, client, project)
+      2 We can add validation, callbacks
+      3 slower to setup
+      4 if you need to work with the relationship model as an independent entity in that case use that associtaion
+
+      For example: 1.rails generate model Programmer name:string
+                   2.rails generate model Client name:string
+                   3.rails generate model Project programmer:references client:references
+                   4.rails db:migrate
+
+      Associtaion in case of has_many :through
+        # app/models/programmer.rb
+        class Programmer < ApplicationRecord
+          has_many :assignments
+          has_many :projects, through: :assignments
+        end
+
+        # app/models/client.rb
+        class Client < ApplicationRecord
+          has_many :assignments
+          has_many :projects, through: :assignments
+        end
+
+        # app/models/project.rb
+        class Project < ApplicationRecord
+          belongs_to :programmer
+          belongs_to :client
+        end
+
+    HABTM
+
+      1 In this association we required only two model (programmer, client, programmerclient[migration])
+      2 we can not add validation, callbacks in (programmerclient) bcoz there no model for this table
+      3 faster to setup
+      4 If you don,t need to do anything with the relationship model, it may be simpler to set up a has_and_belongs_to_many relationship
+
+      For example : 1.rails generate model programmer name:string
+                    2.rails generate model client title:string
+                    3.rails db:migrate
+                    4.rails generate migration CreateJoinTableProgrammerClient programmers clients
+
+      Associtaion in case of HABTM
+
+        class Programmer < ApplicationRecord
+          has_and_belongs_to_many :clients
+        end
+
+        class Client < ApplicationRecord
+          has_and_belongs_to_many :Programmers
+        end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q2 what is validations in rails? at what moments of an objects lifecycle validations are checked?
+
+ Ans:
+
+ 1 validations are mechanisms used to ensure that only valid data is saved into your database.
+ 2 They are defined in your models and specify the conditions that must be met for an object to be considered valid
+ 3 Validations are typically checked before the object is saved into the database.
+
+ Validations are checked at certain moments of an object,s lifecycle, primarily:
+
+ Creation, Update, Validation Triggering
+
+
+ validates :name, presence: true
+ validates :name, length: { minimum: 2 }
+ validates :email, uniqueness: true
+ validates :password, length: { in: 6..20 }
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q3 what do you mean by polymorphic associtaion in rails ? when can one use this associtaion?
+
+ Ans: polymorphic association allows an belong to more than one other model on a single association.
+      This means that the associated model can belong to different types of models, rather than just one specific model.
+
+  example
+
+    class Picture < ApplicationRecord
+      belongs_to :imageable, polymorphic:   
+    end
+
+    class Employee < ApplicationRecord
+      has_many :pictures, as: :imageable
+    end
+
+    class Product < ApplicationRecord
+      has_many :pictures, as: :imageable
+    end
+
+    rails generate model Comment body:text commentable:references{polymorphic}
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q4 what are scopes in rails?
+
+ Ans: scopes are a way to encapsulate commonly used query logic into a single block that block is nothing but a scopes 
+     the main advantage is we can reusable method on a model and easily maintain.
+
+    scope :published, -> { where(published: true) }
+    When you call Post.published, it will return all posts where the published attribute is true.
+ 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q5 differnce between class methods and scopes ? are they similar?
+
+ Ans: There are serveral differnce in between class_method and scope
+
+    scope
+
+      1. first difference is scope Specifically designed for database querying, encapsulating query logic.
+      2. second difference is Designed to be chainable with other scopes and ActiveRecord methods.
+      3. Improves code readability by giving meaningful names to common query patterns.
+
+      class Post < ApplicationRecord
+        scope :active, -> { where(active: true) }
+        scope :by_author, ->(author) { where(author: author) }
+      end
+
+      active_author_posts = Post.active.by_author("John Doe")  # calling scope with chainable syntax
+
+    class_method
+
+      1. Can perform any operation within the class context, not specifically designed for querying.
+      2. Can be chained with other methods but might require additional implementation for chaining with ActiveRecord methods.
+      3. Flexible but may result in less readable code, especially for querying purposes.
+
+      class Post < ApplicationRecord
+        def self.active_by_author(author)
+          where(active: true, author: author)
+        end
+      end
+
+      active_author_posts = Post.active_by_author("John Doe") # calling class method
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q6 what is activeRecord callbacks? with example ?
+
+ Ans: Active Record callbacks are methods that are automatically called at certain points in the lifecycle of an Active Record object.
+      These callbacks allow you to trigger logic before or after certain operations are performed on the object,
+      such as validation, saving, updating, or destroying.
+
+    # Symbol-style Callbacks
+      before_create -> { puts "hey before create is running!" }
+
+    #
+      after_create  :greeting
+      private
+      def greeting
+        puts "Congratulations"
+      end
+
+    # block-style callback
+      after_initialize do |patient|
+        puts "You have initialized an object!"
+      end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q7 how can you define custom validation in rails ?
+
+ Ans: validate :age_not_zero
+
+      private
+
+      def age_not_zero
+        if age.present? && age.zero?
+          errors.add(:age, "can't be zero")
+        end
+      end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q8 what is STI and also tell advantage and disadvantages?
+
+ Ans: 1. STI stands for single table inheritance
+      2. Sometimes, you may want to share fields and behavior between different models. 
+         Let,s say we have Car, Motorcycle, and Bicycle models. 
+         We will want to share the color and price fields and some methods for all of them in that case we can consider STL
+
+      rails generate model vehicle type:string color:string price:decimal{10.2}
+      rails generate model car --parent=Vehicle
+      rails generate model Motorcycle --parent=Vehicle
+      rails generate model Bicycle --parent=Vehicle
+
+
+  Advantage: 1. it simplifies the database schema by requiring just one table for all subclasses
+             2. It also reduces the number of queries needed to fetch objects of a certain type or superclass
+             3. Additionally, it improves performance by avoiding the overhead of joining multiple tables and fetching unnecessary columns.
+
+  Disadvantages: 1. Data duplication can occur when you store the same attributes for different subclasses.
+                 2. data integrity issue
+                 3. Additionally, scalability can be affected when you add more columns to the table for each new subclass
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q9 what do you means by migration in rails? and also tell the uses of the migration
+
+  Ans: A migration is a Ruby script that describes changes to your database schema
+       Migrations are a convenient way to alter your database schema over time in a consistent way.
+
+       Uses
+       1.Creating and Modifying Tables
+       2.Indexing
+       3.Constraints
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q10 what do you means by N+1 query ? how can you resolve it with example?
+
+  Ans:  it happens when a query is executes on each result of the previous query. 
+        but we can fix this N+1 query problem by eager loading
+
+        so eagar loading is the process where by a query loads the resources as soon as code is executed
+        it also load releated entity or associtaions as part of our query here 
+        we will use (includes) this is a method of eager.
+
+        There are three types of method in eagar loading
+
+        1 includes
+        2 preload
+        3 eagar loading
+
+        WAQ fetch all the doctor name for all the patient?
+
+      # In this solution we will get N+1 query 
+        @patient  = Patient.all
+        @patient.each do |p|
+          p.doctor.name
+        end
+
+      # Using INCLUDE only two query will and preload
+
+ imp -> includes and preoload both are same but there is one difference that is we can not use where condition in case of preload
+
+        @patient  = Patient.includes(:doctor)
+        @patient  = Patient.preload(:doctor)
+        @patient.each do |p|
+          p.doctor.name
+        end
+
+ imp->    In Case of SQL-fragments you need to use references to force joined table (Users.name i am using bcoz i am using STI so doctor parent is User)
+
+         @patient Patient.includes(:doctor).references(:doctor).where('users.name = ?', 'DR.User')
+
+ imp ->   Using where like this will only work when you pass it a Hash
+
+         Patient.includes(:doctor).where(doctor: { name: 'DR.User' })
+
+      # using eagar_load 
+
+ imp -> eagar_load will perform only single query but they use left outer join
+
+        @patient  = Patient.eagar_load(:doctor)
+        @patient.each do |p|
+          p.doctor.name
+        end
+
+
+  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q11 what is namepsace and scoped routing in rails?
+
+ Ans:  namespace :admin do
+        resources :articles
+      end
+
+      if our requirment is group of controller into a single module in that case we can consider namespace
+      due to this we can easily maintain our controller and after using namespace in our routes they looks like 
+      (admin/articles/index)  Admin::ArticlesController
+
+    and 
+
+      If we don t want module prefix in our URL in that case we can use routes looks like 
+      (articles/index) Admin::ArticlesController
+
+      scope module: 'admin' do
+          resources :articles
+      end
+
+    and 
+
+      If instead you want to route /admin/articles to ArticlesController (without the Admin:: module prefix), you can specify the path with a scope block:
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q12 difference between includes and joins ?
+
+ Ans: There are serveral differnce 
+
+      In case of includes use eagar_loading.
+  1                AND
+      In Case of joins use lazy loading.
+
+      Includes use internally LEFT OUTER JOIN
+  2                AND
+      Joins use internally INNER JOIN
+
+      When we want to fetch data along with an associated table then includes must be used
+  3                AND
+      it does not load the associated records but allows you to use conditions on the joined tables
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q13 what do you mean by self_join associtaion in rails?
+
+  Ans: A self-join association in Rails refers to a type of association where a model is associated with itself.
+
+    example:
+
+    class Employee < ApplicationRecord
+      has_many :subordinates, class_name: "Employee", foreign_key: "manager_id"
+      belongs_to :manager, class_name: "Employee", optional: true
+    end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q14 what do you mean by ORM ? Explain.
+
+  Ans: ORM stands for object relation model 
+       The main purposes of ORM is to create a bridge between PL and RDBMS. so that we can perform any operation is like Create, read, update, delete. etc
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q15** Is it possible to change the convention of naming a table in rails ? if yes, how will you do this? Please explain
+
+  Ans: Yes, it is possible to change the convention of naming a table in Rails
+    # app/models/user.rb
+    class User < ApplicationRecord
+      self.table_name = 'custom_users'
+    end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q16 What do you mean by rolling back a migration ? how can you rollback a specific migration?
+
+ Ans: Rolling back a migration in Rails refers to reversing the changes made by a specific migration file. In other words,
+      its the process of undoing the modifications to the database schema that were applied when the migration was run.
+
+
+      rails db:migrate:down VERSION=20100905201547
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q17 what are the relational and conditional callbacks in ActiveRecord ? Explain them
+
+ Ans: relational callbacks :- Relational callbacks are callbacks that are triggered based on relationships between ActiveRecord models.
+                             These callbacks are executed when certain association-related operations occur.
+
+                            before_add / after_add, before_remove / after_remove
+
+
+                            class User < ApplicationRecord
+                              has_many :articles, dependent: :destroy
+                            end
+
+                            class Article < ApplicationRecord
+                              belongs_to :user
+
+                              after_destroy :log_destroy_action
+
+                              def log_destroy_action
+                                puts 'Article destroyed'
+                              end
+                            end
+
+    conditional callbacks :- Conditional callbacks are callbacks that are executed based on certain conditions or criteria.
+
+                              before_save :calculate_total_price, if: :new_record?
+
+                              private
+                              def calculate_total_price
+                                self.total_price = calculate_total
+                              end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q18 What are transactional callbacks? explain them.
+
+ Ans: Transactional callbacks allow you to execute certain logic or actions before or after a transaction is committed or rolled back
+
+
+  def student
+      after_commit  :display_message
+
+      private
+      def display_message
+          puts " This is will after transaction commit"
+      end
+  end
+   : transaction_begin
+   :  update.table query
+   : transaction_commit 
+   : callback will run
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q19 what do you mean by member and collection routes ?
+  Ans: 
+    collection: 1.There is no specific :id or :slug is required in the route which is a basic condition for using :collection for the route.
+
+                  resources :homes do
+                    get :post, on: :collection
+                  end
+
+                  OR 
+
+                  resources :homes do
+                    collection do
+                      get :post
+                    end
+                  end
+
+    Member: 1. A member route will require an ID, because it acts on a member and displays a single object
+
+                  resources :homes do
+                    get :post, on: :member
+                  end
+
+                  OR 
+
+                  resources :homes do
+                    member do
+                      get :post
+                    end
+                  end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q20** Explain the difference between webpacker and sprockets ?
+
+  Ans: Webpacker and Sprockets are both asset management solutions used in Ruby on Rails applications  
+
+    webpacker: webpacker allow you to write your front-end code in a way that is convenient for developers
+               and then package that code is a way that is convenient for browser.
+
+    sprockets: Sprockets is the default asset pipeline used in Rails for managing JavaScript, CSS, and other assets
+
+
+    main difference
+
+    Technology_stack: Sprockets is primarily focused on managing traditional assets like JavaScript, CSS, and images, whereas Webpacker is designed for modern JavaScript development and supports a wider range of asset types and tools.
+    JavaScript
+
+    ecosystem: Webpacker integrates seamlessly with the JavaScript ecosystem and allows you to leverage modern tools and libraries, while Sprockets has limited support for modern JavaScript features.
+
+    Configuration: Webpacker provides more flexibility and customization options through webpack configuration, whereas Sprockets has a simpler configuration based on asset directives.
+
+    Performance: Webpacker offers better performance and optimization capabilities for asset bundling and loading, especially for large and complex applications.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q21 how many types of associtaion are in rails?
+
+ Ans: There are 6 types of associtaion in rails 
+      belongs_to:
+      has_many:
+      has_one:
+      has_many: :through
+      has_one: :through
+      has_and_belongs_to_many:
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q22 what do you mean by partials in rails ? explain the usage of partials and the way we can pass local variables to a partial
+
+  Ans: partials are reusable chunks of view code that can be shared and reused across multiple views.
+
+      1. the main purposes of render is readability will be increase 
+      2. easily maintance the code
+      3. also readability is also increase 
+
+
+
+    <%= render partial: 'shared/profile', locals: { user: @user } %
+    <%= render 'shared/profile', user: @user %
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q23 what are delegates in rails? explain usage of delegates.
+
+ Ans: 
+  1. In Rails, the Delegate Pattern is a design pattern used to delegate or pass the responsibility of handling certain methods from one object to another.
+  2. Delegate Pattern allows you to method calls to another object, typically an associated object.
+
+  example:
+  Imagine you have two models in your Rails application: User and Profile. Each User has one Profile. 
+  Now, lets say you want to access some attributes of the Profile model directly from the User model without having to explicitly call 
+  user.profile.some_attribute.
+
+
+      # app/models/user.rb
+    class User < ApplicationRecord
+      has_one :profile
+      delegate :bio, to: :profile
+    end
+
+    # app/models/profile.rb
+    class Profile < ApplicationRecord
+      belongs_to :user
+    end
+
+    before_delegate:
+
+      User.first.profile.bio
+
+    after_delegate:
+
+      User.first.bio
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q24 what do you mean by helper classes? explain
+
+  Ans: helper is a module which contain methods that encapsulate code and They make it easy for developers to reuse code across multiple views and keep the application clean an organized
+
+    example:
+
+    # app/helpers/date_helper.rb
+
+    module DateHelper
+      def format_date(date)
+        date.strftime("%B %-d, %Y")
+      end
+    end
+
+
+    # app/controllers/application_controller.rb
+
+    class ApplicationController < ActionController::Base
+      include DateHelper
+    end
+
+    <%= format_date(@post.published_at) %
+
+
+ imp: Rails comes with several built-in helper methods that you can use in your views
+ (link_to, form_for, number_to_currency, pluralize)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q25 what do you mean by mailers? how many ways to pass arguments to a mailer?
+
+  Ans: mailers are responsible for sending emails from your application. They provide a way to generate 
+      and deliver email messages to users or administrators based on specific events or actions within your application
+
+      step 1: 
+      rails g mailer [mailer_controller_name] [action]
+
+      step 2:
+        def create(object) //Argument will be anything in my case i am using object as a argument
+          @object =  object
+          mail to: "adityamaheshwari146@gmail.com", subject: " A new Patient appointment"
+        end
+
+      step 3:
+         Modified the mail template file accordingly 
+
+        <h1> Hello Developer </h1>
+        <p>
+          A new patient is created
+        </p>
+        <% @object.attributes.each do |key, value| %>
+          <p><strong><%= key %>: </strong> <%= value %></p>
+        <% end %
+
+      step 4:
+      simple call the mailer where the @patient.save will
+      like this 
+
+        controller name      mailer action(object)  
+      CrudNotificationMailer.create(@patient).deliver_now
+    that,s it
+  preview the email into tab in that case use one gem 'letter_opener' (read doc for more).
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q26 what do you mean by concerns in rails ? explain the way of using a concern
+
+  Ans:  Concerns are typically used to encapsulate common behavior into modules and include them in different parts of your application where needed. 
+        They help you avoid code duplication and maintain a clean and readable codebase.
+
+        a concern is a way to organize and share reusable code across multiple models, controllers, or other parts of your application
+
+        # models/concerns/validatable.rb
+
+          module Validatable
+            extend ActiveSupport::Concern
+            included do 
+              validates :name, presence: true
+            end
+          end
+
+          # models/user.rb
+          include Validatable 
+
+        #################################################
+
+        # Controllers/concern/Authenication.rb
+
+          module Authentication
+            extend ActiveSupport::Concern
+
+            included do 
+              before_action :authenticate_user
+            end
+
+            private
+
+            def authenticate_user
+              unless @current_user
+                redirect_to login_path, alert: 'Please log in'
+              end
+            end
+          end
+
+          #controllers/patients.rb
+
+          include Authentication
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q27** have you ever used sidekiq? explain how it works in both production and development environments?
+
+ Ans: Yes, I,m familiar with Sidekiq.
+      Sidekiq is a popular background processing library for Ruby on Rails applications, 
+      used to execute tasks asynchronously outside the request-response cycle of the web server.
+
+      step 1: bundle add sidekiq
+      step 2: rails generate sidekiq:job my_first_job
+      step 3: class MyFirstJob
+                include Sidekiq::Worker
+
+                def perform(*args)
+                  # Custom logic goes here
+                end
+              end 
+      step 4: config/application.rb add this line (config.active_job.queue_adapter = :sidekiq)
+
+      step 5: call the job into your controller as well as pass the argument (MyFirstJob.perform_async(@patient.id))
+
+      step 5: bundle exec sidekiq
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q28 what is the difference between a sidekiq worker and rails ActiveJob ?
+
+ Ans:
+  sidekiq 
+    1: Sidekiq is a third-party background processing library for Ruby on Rails applications
+    2: Sidekiq supports concurrent job processing
+    3: Sidekiq offers more flexibility and advanced features
+
+  rails ActiveJob
+    1: ActiveJob is part of the Rails framework and provides a unified interface.
+    2: while ActiveJob is part of the Rails framework itself.
+    3: but ActiveJob provides a unified interface and simplifies the process of working with multiple background processing libraries.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q29 what do you mean by rake tasks? how can you define/implement custom rake tasks?
+
+  Ans: Rake is known as task runner in rails. it is used run the predefined or custom tasks. this is also known as schedular
+
+    imp -> before rails 5 we can execute the common like this (rake db:migrate) after rails 5 raise an error but we can still use rake in 
+          my command like (bundle exec rake db:migrate)
+
+        example: 
+          rails db:migrate, db:rollback
+
+
+      there are two ways to define rake task in rails application
+        1 from scratch
+
+          # lib/task/ example_task.rake
+
+          namespace :example_task do 
+            desc 'descrption part is option but for the code readability will increase if we define the descrption'
+
+          1 -->   task greet: :environment do 
+                    puts "Scretch rake task is running"
+                  end
+          2 -->   task bye_greet: :environment do 
+                    puts "We can define N number of rake task in same file"
+                  end
+            end
+
+        2 Using command
+
+          rails g task [namespace] [task]
+          rails g task example_task greet bye_greet
+
+      rails T | grep [namespace] // to get all the avaliable task
+
+      3 For running
+        rails example_task:greet
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q30 do you know about ActiveStorage? how can you use this ?
+
+  Ans: 
+    1: Active Storage is a built-in library in Ruby on Rails for managing file uploads and storage
+    2: It simplifies the process of uploading files to a storage service like Amazon S3, Google Cloud Storage, or local disk storage.
+
+    associate them with the (has_one_attached) or (has_many_attached)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q31 Difference between Load and Require ?
+
+  Ans: 
+    Load:
+        The load method is used to load Ruby code from a file and executes the code every time it is called
+        // open load.rb for references 
+    Require:
+        The require the method is used to load external code or libraries and only loads a file once
+        // open load.rb for references
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q32 Explain strong parameter?
+
+  Ans: 
+    1. Strong parameters is a security feature in Ruby on Rails that helps protect against mass assignment vulnerabilities.
+    2. With strong parameters, you explicitly define which parameters are allowed to be used in a particular controller action
+    3. Strong parameters are defined at the controller level using the permit method.
+
+    Benefits of Strong Parameters:
+    1. Security
+    2. Clarity
+    3. Flexibility
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q33 how do you pass default argument to a controller action where you instantiate a new model object ?
+
+  Ans: yes i can pass default argument 
+
+    Method 1: Define Default Values in Controller Action:
+        class UsersController < ApplicationController
+          def new
+            @user = User.new(default_params)
+          end
+
+          private
+
+          def default_params
+            { name: "John", email: "john@example.com" }
+          end
+        end
+    Method 2: Set Default Values in Model:
+      class User < ApplicationRecord
+        after_initialize :set_defaults
+
+        private
+
+        def set_defaults
+          self.name ||= "John"
+          self.email ||= "john@example.com"
+        end
+      end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q34 what are turbolinks into rails ?
+
+ Ans: Turbolinks is a lightweight and easy-to-use library for Ruby on Rails that enhances the perceived speed and 
+      responsiveness of web applications by providing faster page loads and smoother transitions between pages. 
+      It,s a powerful tool for improving user experience and reducing development complexity in Rails applications.
+
+      Benefits of Turbolinks:
+
+      1.Faster Page Load
+      2.Smoother User Experience
+      3.Simplified Development
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q35 what do you mean by API versionig in rails ? Explain when there is a need to change the version of an API?
+
+  Ans: 1.API versioning in Rails is a practice of managing different versions of your API to ensure that changes don,t break existing applications using the API
+       2.lets you introduce new features or make changes without disrupting existing functionality. 
+         This way, clients of your API can continue using the version they,re compatible with, 
+         while newer clients can take advantage of the latest features.
+
+        URL-based Versioning
+        step 1:
+
+          # app/controllers/api/v1/users_controller.rb
+          module Api
+            module V1
+              class UsersController < ApplicationController
+                # Version 1 controller actions
+              end
+            end
+          end
+
+          # app/controllers/api/v2/users_controller.rb
+          module Api
+            module V2
+              class UsersController < ApplicationController
+                # Version 2 controller actions
+              end
+            end
+          end
+        step 2:
+          Rails.application.routes.draw do
+            namespace :api do
+              namespace :v1 do
+                resources :users
+              end
+
+              namespace :v2 do
+                resources :users
+              end
+            end
+          end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q36 what is the difference between before_save, before_create and before_uodate?
+
+  Ans: before_save is triggered before every save operation (both create and update), 
+       before_create is triggered only before creating a new record, and 
+       before_update is triggered only before updating an existing record.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q37 what do you mean by asset pipeline?
+
+  Ans: The asset pipeline in Rails is like a handy tool that helps manage all the files needed to make a website look and work right, like stylesheets, JavaScript files, and images.
+       It's basically a way to keep your website's files organized, optimized, and ready to use!
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q38 what do you mean by default_scope ? please explain
+
+  Ans: 
+  1. default_scope is a feature that allows you to define a default set of conditions that are applied to all queries for a particular model
+  2. These conditions are automatically added to every SQL query performed on the model
+
+  class Post < ApplicationRecord
+    default_scope { where(published: true).order(created_at: :desc) }
+  end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q39 explain routing in rails?
+
+  Ans: routing in Rails defines how incoming requests are processed and mapped to controller actions
+    There are 5 type of verbs in routes
+      1 GET
+      2 POST
+      3 PATCH
+      4 PUT
+      5 DELETE
+
+      Rails provides a resources method in the routes file for quickly defining RESTful routes for resources
+      This method generates routes for the standard CRUD actions (index, show, new, create, edit, update, destroy) for a given resource.
+
+        # Define a route for the homepage
+          root 'pages#home'
+
+          # Define RESTful routes for the 'posts' resource
+          resources :posts (index, show, new, create, edit, update, destroy)
+          resource :posts (show, new, create, edit, update, destroy)
+
+          # Define a custom route with a dynamic segment
+          get 'products/:id', to: 'products#show', as: 'product'
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q40 what do you mean filter actions or controller callbacks? explain
+
+  Ans: 
+    1.filter actions or controller callbacks are methods that allow you to run code before, after, or around controller actions.
+    2.Due to this readability will be increase, easily Modifying, also line of code should be reduce.
+
+    before_action, around_action, after_action
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q41 how can you handle ActiveRecord::RecordNotFound exception for all resources?
+
+  Ans: ActiveRecord::RecordNotFound in Ruby is an error that occurs when an application is unable to find a record in the database that corresponds to the provided parameters.
+
+    we can handle this exception by two ways
+
+  1st way
+    def show
+      begin
+        @article = Article.find(params[:id])
+      rescue ActiveRecord::RecordNotFound => e
+        redirect_to '/404'
+      end
+    end
+  2nd way
+    class ApplicationController < ActionController::Base
+      rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
+
+      private
+      def record_not_found
+        flash[:alert] = "The requested record was not found."
+        redirect_to root_path
+      end
+    end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q42 what is the Difference between save and save! ?
+  
+  Ans: save and save! are both methods used to save ActiveRecord objects to the database, 
+      but save! raises an exception if the save operation fails, 
+      while save returns false without raising an exception.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q43 How can you pass params to a mailer actions?
+
+  Ans: we can pass params in mailer action 
+
+      # app/controller/patient_controller.rb
+      CrudNotificationMailer.with(patient: @patient).create.deliver_now
+
+      # app/mailer/mailer.rb
+      def create  (In Case of passing params)
+        mail to: "adityamaheshwari146@gmail.com", subject: " A new Patient appointment"
+      end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q44 what is ActionCable ? (interview)
+
+  Ans: Action Cable is a feature introduced in Ruby on Rails 5 that allows for real-time communication between the server and client over WebSockets. 
+      It enables bidirectional communication, meaning both the server and client can send messages to each other in real-time.
+
+      imp -> Action Cable uses WebSockets instead of the HTTP request-response protocol
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q45** how can you implement user Authenication using devise and JWT ? Explain the process of it.
+
+  Ans: Implementing user authentication using Devise and JWT (JSON Web Tokens) can be a powerful combination for securing your Rails application,s endpoints
+
+    step 1
+      gem 'devise'
+      gem 'jwt'
+    step 2
+      rails generate devise:install
+    step 3
+      rails generate devise User
+    step 4
+      create one session controller
+      # app/controllers/api/v1/sessions_controller.rb
+      class Api::V1::SessionsController < Devise::SessionsController
+        respond_to :json
+
+        def create
+          user = User.find_by(email: params[:email])
+
+          if user&.valid_password?(params[:password])
+            token = generate_jwt_token(user)
+            render json: { token: token }
+          else
+            render json: { error: 'Invalid email or password' }, status: :unauthorized
+          end
+        end
+
+        private
+
+        def generate_jwt_token(user)
+          JWT.encode({ user_id: user.id, email: user.email }, Rails.application.secrets.secret_key_base)
+        end
+      end
+    step 5
+      Rails.application.routes.draw do
+        namespace :api do
+          namespace :v1 do
+            devise_for :users, controllers: { sessions: 'api/v1/sessions' }
+          end
+        end
+      end
+    step 6
+      # app/controllers/application_controller.rb
+      class ApplicationController < ActionController::Base
+        before_action :authenticate_user!
+
+        protected
+
+        def authenticate_user!
+          token = request.headers['Authorization']&.split(' ')&.last
+          return render json: { error: 'Authorization token is missing' }, status: :unauthorized unless token
+
+          decoded_token = JWT.decode(token, Rails.application.secrets.secret_key_base)
+          @current_user = User.find(decoded_token[0]['user_id'])
+        rescue JWT::DecodeError => e
+          render json: { error: 'Invalid token' }, status: :unauthorized
+        end
+
+        def current_user
+          @current_user
+        end
+      end
+    step 7
+      # app/controllers/application_controller.rb
+
+      class ApplicationController < ActionController::Base
+        before_action :authenticate_user!
+
+        protected
+
+        def authenticate_user!
+          token = request.headers['Authorization']&.split(' ')&.last
+          return render json: { error: 'Authorization token is missing' }, status: :unauthorized unless token
+
+          decoded_token = JWT.decode(token, Rails.application.secrets.secret_key_base)
+          @current_user = User.find(decoded_token[0]['user_id'])
+        rescue JWT::DecodeError => e
+          render json: { error: 'Invalid token' }, status: :unauthorized
+        end
+
+        def current_user
+          @current_user
+        end
+      end
+    step 8
+      # app/controllers/api/v1/posts_controller.rb
+      class Api::V1::PostsController < ApplicationController
+        before_action :authenticate_user!
+
+        def index
+          posts = current_user.posts
+          render json: posts
+        end
+
+        # Other actions...
+      end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q46 how many form helpers are provided by rails? Tell the names and difference between them
+
+  Ans: Rails provides several form helpers to simplify the process of creating HTML forms in your views.
+    1. FormHelper (form_with)
+    2. FormTagHelper (form_tag)
+    3. FormBuilder (form_for)
+    4. FormOptionsHelper ()
+
+    form_for is used for model-backed forms, 
+    form_with is a versatile replacement for both form_for and form_tag, and 
+    form_tag is a low-level form helper for creating forms without a specific model.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q47 what is the difference between delete and destroy in rails?
+
+  Ans: 
+    delete:
+      1. delete does not instantiate the object
+      2. delete does not execute callbacks
+      3. delete_all is faster
+      4. delete will not work with :dependent option
+      5. delete will return number of rows effect(count) if we can delete the record with 
+
+    destroy:
+      1. destroy instantiate the object
+      2. destroy does execute callbacks
+      3. destroy_all is slower because they run the query Nth number of query
+      4. destroy will work with :dependent option
+      5. destroy will not return number of rows effect 
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q48 how do you organize your controller? Tell me about the way that you can make a controller thin.
+
+  Ans: There are serveral step to organize my controller
+
+    1. Skinny Controllers
+        "Skinny" controllers refer to keeping your Rails controller files as small and focused as possible.
+
+    2. Keeping Actions Focused
+        Avoid cramming too much logic into a single action. Instead, break it down into smaller, focused actions.
+
+    3. Delegating Logic to Models or Services
+        Keep most of your applications logic, like data validation or calculations, within the models.
+
+    4. Limiting Instance Variables
+        Minimize the number of instance variables (@variable) that controllers expose to views.
+        Only set instance variables that are necessary for rendering the current view.
+
+    5. Extracting Business Logic into Service Objects
+        Service objects are standalone classes designed to encapsulate a specific business operation or task.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q49 Is it possible to replace the schem.rb file in rails ? If yes, how can you do this ?
+
+  Ans: Yes, it is possible to replace the schema.rb file in a Rails application with an alternative schema format, such as SQL or JSON
+
+    step 1 open this file config/application.rb
+    step 2 config.active_record.schema_format = :sql
+    step 3 rails db:migrate
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q50 You can asked to implement an admin backend for a web application. what soultion will you propose ? any gem or custom admin panel? Also explain the reason.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q51 How many gems for the admin backend have you used ? which gem is better any why?
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q52 What do you mean by sessions in rails ? In what circumstances do you need to use sessions? Explain
+
+  Ans: sessions in Rails are a way to remember information about a user as they browse through your website
+    example:
+    Imagine you log in to a website and navigate to different pages. 
+    With sessions, the website can remember that you are logged in on each page without asking you to log in again. 
+    This is because your login information is stored in a session and is available to the app throughout your visit
+
+    there are serveral circumstances
+
+      1. User Authentication
+      2. Shopping Carts
+      3. Flash Messages
+      4. Preferences and Settings
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q53 What is the find_each method in rails ? Also explain why the .all methods is not ideal to use for loading all the instance of a model at once?
+
+  Ans: The find_each method in Rails is used to retrieve records from the database in batches, 
+       which is especially useful when dealing with large datasets. 
+       This method helps to reduce memory consumption and improve performance by loading a small subset of records into memory at a time, 
+       rather than loading all records at once.
+
+       imp -> Default Batch Size: The default batch size is 1000 records, but you can customize this size.but we can customize the batch like this 
+
+       User.find_each(batch_size: 500) do |user|
+        puts user.name
+      end
+
+       .all methods is not ideal because Loading all user records into memory at once would be inefficient and could potentially crash your application due to high memory usage.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q54 what is polymorphic associtaion in rails ? when should you actually use a polymorphic associtaion?
+
+  Ans: In Case of polymorphic A model can belong to more than one other model, on a single association that is known as polymorphic associtaion
+        class Picture < ApplicationRecord
+          belongs_to :imageable, polymorphic: true
+        end
+
+        class Employee < ApplicationRecord
+          has_many :pictures, as: :imageable
+        end
+
+        class Product < ApplicationRecord
+          has_many :pictures, as: :imageable
+        end
+       In this example both Employee and Product models can have many pictures by using polymorphic associtaion.
+
+       actually Use
+
+       1. When you have multiple models that need to share a common association.
+       2. When you,re building a generic or reusable component.
+       3. When you want to simplify your schema
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q55 what is the difference between eager_load and includes methods? And which one is better?
+
+  Ans:
+    includes: 
+      1. Loads associated records through separate queries.
+      2. Suitable for most cases where you're accessing associations for read-only purposes or when you don't need all associated records immediately.
+      3. More memory-efficient as it doesn,t load all associated records into memory at once
+
+
+    eager_load:
+      1. Loads both primary and associated records in a single query using a JOIN.
+      2. Useful when you know you,ll need both and want to minimize database queries 
+      3. Loads all associated records into memory immediately, which can be memory-intensive for large datasets.
+
+    Includes is generally preferred for its efficiency and flexibility, 
+    while eager_load is used when you specifically need to optimize for minimizing database queries and are willing to tolerate the increased memory usage
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q56 which of the methods is faster between delete and destroy? explain why?
+
+  Ans: Delete method is generally faster then destroy because it directly execute a SQL delete query without loading the
+       record into memory or triggering callbacks and validations.
+
+       However destroy ensures data integrity by properly handling associations, callbacks, and validations, 
+       which may be necessary depending on the application,s requirements.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q57 what is the difference between ActiveModel and ActiveRecord ?
+
+  Ans: 
+    ActiveModel:
+
+      1.Purpose: Adds model-like behavior to any Ruby object.
+      2.Use Case: Use when you dont need a database, e.g., for form objects or non-database models.
+      3.Example: Validations, callbacks for plain Ruby objects.
+
+    ActiveRecord:
+
+      1.Purpose: Connects Ruby objects to database tables.
+      2.Use Case: Use when you need to interact with a database.
+      3.Example: Creating, reading, updating, deleting database records (CRUD operations).
+
+      In short, ActiveModel is for models without a database, and ActiveRecord is for models with a database.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q58 What is the difference between dependent: :destroy and dependent: :delete_all?
+
+   has_many :posts, dependent: :destroy
+
+      When a User is destroyed, Rails will call the destroy method on each associated Post, triggering their callbacks and potentially destroying further associated records.
+
+   has_many :posts, dependent: :delete_all
+
+      When a User is destroyed, Rails will issue a single SQL DELETE statement to remove all associated Post records, skipping their callbacks and any custom logic in the destroy method.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q59 what is yield in ruby ? what happens if you call the method, which includes yield, without passing a block?
+
+  Ans: In Ruby, yield is a keyword used within a method to transfer control from the method to a block that is provided when the method is called
+
+       If you call a method that includes yield without passing a block, 
+       it will result in a LocalJumpError because the method expects a block to be given, 
+       and trying to yield to a non-existent block causes an error.
+
+            def greet
+              puts "Hello!"
+              yield # This will cause an error if no block is given
+              puts "Goodbye!"
+            end
+
+    case1:  greet
+    case2:  greet { puts "This is the block." }
+
+          output:
+
+    case1:  Hello!
+            LocalJumpError: no block given (yield)
+
+    case2:  hello!
+            this is the block
+            Goodbye
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q60 Difference between Hash and hashWithIndiffererntAccess?
+
+  Ans: 
+    Hash
+      1. Hash is case-sensitive and treats symbol keys and string keys as different.
+      2. This is the standard hash provided by Ruby
+      3. Use when you need standard key-value storage with case-sensitive keys
+
+      for example
+        hash = { "name" => "Alice", :age => 30 }
+
+        puts hash["name"] # => "Alice"
+        puts hash[:name]  # => nil
+        puts hash[:age]   # => 30
+        puts hash["age"]  # => nil
+
+    HashWithIndiffererntAccess
+
+      1. Treats string keys and symbol keys as equivalent
+      2. Provided by ActiveSupport in Rails to make it easier to work with params
+
+
+      for example
+        hash = ActiveSupport::HashWithIndifferentAccess.new
+        hash["name"] = "Alice"
+        hash[:age] = 30
+
+        puts hash["name"] # => "Alice"
+        puts hash[:name]  # => "Alice"
+        puts hash[:age]   # => 30
+        puts hash["age"]  # => 30
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q61 In Ruby, how many ways to invoke a method? Illustrate with examples
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q62 In Ruby what is the difference between strings and symbols? explain.
+
+  Ans: In Ruby, strings and symbols are both used to represent text, but they have some key differences
+
+      string:
+        1. string mutable in nature.
+        2. if we try to modify the contents of a string it will create new object.
+        3. Strings are typically used when data may need to be modified
+        4. Since each string is a new object, creating many strings with the same content can consume more memory
+
+
+        str1 = "hello"
+        str2 = "hello"
+        puts str1.object_id == str2.object_id # => false
+
+      symbols:
+        1. symbols immutable in nature.
+        2. if we try to modify the contents of a string it will raise an error.
+        3. symbols are typically used when data may not need to be modified
+        4. Symbols are more memory efficient than strings for identifiers or keys because the same symbol is reused.
+
+
+        sym1 = :hello
+        sym2 = :hello
+        puts sym1.object_id == sym2.object_id # => true
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q63 what do you mean by schema versioning in rails ? when does it change?
+
+  Ans: Schema versioning in Rails is like keeping track of changes you make to your database over time. 
+      When you generate a new migration file using the Rails generator command, the schema version changes because a new migration file is created with a unique timestamp
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q64 what do you mean by reversible migrations?
+
+  Ans: In Rails, reversible migrations refer to migration scripts that can be automatically reversed (or undone) by Rails when you roll back your database schema changes.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q65 how can you run/rollback any specific migrations in rails ?
+
+  Ans: In Rails, We can run or rollback specific migrations by using the VERSION parameter with the db:migrate and db:rollback tasks.
+
+    rails db:migrate:up VERSION=20230521123110
+    rails db:migrate:down VERSION=20230521123110
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q66 when should you use an up and down methods instead of a change method inside your migration ? explain by an example
+
+  Ans: In Rails migrations, we should use up and down methods instead of the change method when the migration operation is not automatically reversible
+
+       The change method is great for simple, reversible changes like creating tables or adding columns. 
+       However, some operations, such as data transformations or complex database modifications, cannot be automatically reversed by Rails
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q67 what is shallow nesting of routes and when is preferable to use this?
+
+  Ans: Shallow nesting of routes is a way to keep URLs shorter and simpler when you have related resources in your Rails app. 
+       Instead of making URLs that are very long and complicated, you make them shorter and easier to read.
+
+        resources :posts, shallow: true do
+          resources :comments
+        end
+
+        # Controller without Shallow Nesting
+        class CommentsController < ApplicationController
+          def show
+            @post = Post.find(params[:post_id])
+            @comment = @post.comments.find(params[:id])
+          end
+        end
+        # Controller with Shallow Nesting
+        class CommentsController < ApplicationController
+          def show
+            @comment = Comment.find(params[:id])
+          end
+        end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q68 what do you mean by inject methods in Rails?
+
+  Ans:  
+    1.the inject method (also known as reduce) is an enumerable method used to accumulate a single value from a collection of elements
+    2. such as an array or a hash. It,s a powerful tool for performing operations like summing up elements, concatenating strings, or merging hashes.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q69 Differnece between equal and eql in rails?
+
+  Ans: 
+    equal: 
+        1. The equal? method is used to compare whether two objects are the exact same object in memory.
+          a = "hello"
+          b = "hello"
+          c = a
+
+          puts a.equal?(b) # Output: false (different objects with same content)
+          puts a.equal?(c) # Output: true (same object)
+
+        2. Use this when you need to ensure that two variables reference the exact same object.
+
+    eql:
+        1. The eql? method is used to compare whether two objects are of the same type and have the same value
+          a = "hello"
+          b = "hello"
+          puts a.eql?(b) # Output: true (same type and same content)
+
+        2. Use this when comparing complex data structures where both value and type need to be identical.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q70 what is the advantage of using hash over an array in ruby ?
+
+  Ans: 1. Hashes allow you to use meaningful keys to access values, making your code more readable and maintainable
+       2. Lookups, insertions, and deletions in a hash are generally O(1) operations because they are based on key hashing.
+       3. Hashes allow you to use various types of objects (strings, symbols, numbers) as keys
+       4. No Need for Indice
+       5. insertion orders are preserve
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q71 Differnece between interators and loop in ruby?
+
+  Ans: interator never falls in a infinite execution but loop may fall into the infinite execution if the condition is not define properly
+        because interator works over a finite length of collection.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q72 what are accessor method in ruby ? list and explain accessor method.
+
+  Ans: IN ruby accessor typically refers to methods that allow you to read and write instance variables of an object.
+        There are three type of accessor
+        1. attr_reader only for read the instance variable 
+
+          class Car
+            attr_reader :name
+
+            def initialize(name)
+              @name = name
+            end
+          end
+
+          car = Car.new("Lamborghini")
+          puts car.name # This reads the value of the name attribute.|
+
+        2. attr_writer It allows you to modify the value of an instance variable but not read it directly.
+
+          class Car
+              attr_writer :name
+
+              def initialize(name)
+                @name = name
+              end
+            end
+
+            car = car.new("Lamborghini")
+            car.name = "Ferrari" # This modifies the value of the name attribute.
+
+        3. attr_accessor It combines both reader and writer accessors, allowing you to both read and modify the value of an instance variable.
+
+            class Car
+              attr_accessor :name
+
+              def initialize(name)
+                @name = name
+              end
+            end
+
+            car = Car.new("Lamborghini")
+            puts car.name  # This reads the value of the name attribute.
+            car.name = "Farrari"  # This modifies the value of the name attribute.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q73 what are class level and module level attribute?
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q74 what is the difference between include and extends in rails?
+  include:
+    1. The main purpose of include is add instance method from modules to a class in that case we can use include
+  extends:
+    1. The main purpose of extend is add class method from modules to a class in that case we can use extend
+
+
+  imp: Choose include if you need to call the method within instance methods, and extend if you need class-level methods.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q75 how many template engines are supported by rails ? which one is your Preference and why
+
+  Ans: there are 3 types of template engine supported by rails 
+      1.HAML (gem)
+      2.SLIM (gem)
+      3.ERB (default)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q76 what do you mean by singleton (eigen) class in ruby?
+  
+  Ans: A Singleton ensures that a class has only one instance and provides a global point of access to it
+      example:
+        Imagine you have a single printer in your office. No matter who tries to print, 
+        they all use the same printer. The Singleton pattern is like that printer — no matter how many times you ask for it, 
+        you always get the same one.
+
+      class Printer
+        # Step 1: Make the constructor private so no one can create new instances directly.
+        private_class_method :new
+
+        # Step 2: Create a class variable to hold the single instance.
+        @@instance = nil
+
+        # Step 3: Define a class method to provide access to the instance.
+        def self.instance
+          # If the instance doesn't exist, create it.
+          # Otherwise, return the existing instance.
+          @@instance ||= new
+        end
+
+        # Example method to demonstrate functionality.
+        def print_document
+          puts "Printing document..."
+        end
+      end
+
+      # Get the instance of the Printer class.
+      printer1 = Printer.instance
+
+      # Call a method on the instance.
+      printer1.print_document  # Output: Printing document...
+
+      # Get the instance again to show that it's the same instance.
+      printer2 = Printer.instance
+
+      # Check if both variables point to the same instance.
+      puts printer1 == printer2  # Output: true
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q78 when do you think is the right time to define a helper method inside a controller in rails?
+
+  Ans: If the helper method is only relevant to a particular controller and its views, it makes sense to define it in the controller.
+
+      class UsersController < ApplicationController
+        # Define the helper method
+        def format_user_name(user)
+          "#{user.name} (#{user.role})"
+        end
+        helper_method :format_user_name
+
+        def index
+          @users = User.all
+        end
+      end
+
+      # index.html.ERB
+      <li><%= format_user_name(user) %></li>
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q79 what is your understanding of DRY code ? explain
+
+  Ans: 
+    1. DRY stands for "Don't Repeat Yourself," a principle aimed at reducing repetition within software development.
+    2. The main idea is to write code in a way that avoids duplication and encourages reuse.
+    3. due to this principle readability will increase
+    4. line of code should be reduce
+    5. Easily maintainable
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q80** what is your approach to write a thin controller? also explain why controller should be thin and what are the advantage of it ?
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q81 what is the purpose of initializers directory in a rails projects ?
+
+  Ans: In a Rails project, the initializers directory, located at config/initializers, serves an important purpose. 
+       This directory is used to store Ruby files that contain configuration settings for various aspects of the application. 
+       These initializers run when the Rails application starts up, allowing you to set up configurations that need to be initialized when the application loads.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q82 Difference between Nil and false? (interview)
+  
+  Ams: 
+    nil:
+      1. nil represents the absence of a value or "nothing".
+      2. Use nil when you need to denote that a variable has no value or is uninitialized.
+      3. nil is an instance of NilClass.
+      4. nil is often used in situations where a value is optional or might not be present.
+
+    false:
+      1. false represents a boolean false value.
+      2. Use false when you need to explicitly indicate a boolean false condition.
+      3. false is an instance of FalseClass.
+      4. false is used in logical conditions and boolean operations.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q83  difference between proc and lamabda in rails ? (interview)
+
+  Ans: 
+      proc:
+        Use Proc when you want flexible argument handling and don,t mind if return exits the method.
+
+        my_proc = Proc.new { |x| puts x }
+        my_proc = proc { |x| puts x }
+        my_proc.call(10)
+
+      lambda:
+        Use Lambda when you want strict argument handling and want return to stay within the lambda.
+
+        my_lambda2 = -> (x) { puts x }
+        my_lambda2 = lambda (x) { puts x }
+        my_lambda2.call(20)  # Output: 20
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q84 What is Hotwire? (interview)
+
+  Ans: Hotwire is a package of different frameworks that help to build applications. 
+       It simplifies the developer’s work for writing web pages without the need to write JavaScript, and instead sending HTML code over the wire.
+
+      There are three type of hotwire component
+
+      1. Turbo: The heart of hotwire is turbo
+      2. Stimulus: A simple JavaScript framework for HTML is called Stimulus.
+      3. Strada: It enables HTML-based communication between a web application and a mobile application
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q85 How to skip validation in rails?
+
+  Ans:
+      user = User.new(name: "John", email: "john@example.com")
+      user.save(validate: false)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q86 Differnece between Render and redirect_to in rails?
+
+  render: It doesn,t trigger a new request; instead, it simply renders the specified template or text within the current request cycle.
+
+  redirect_to: The redirect_to method is used to redirect the browser to a different action, controller, or URL.
+               This causes the browser to make a new HTTP request to the specified location
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q87 What is Ajax, jquery and JavaScript?
+
+  Ans: AJAX: AJAX is used to fetch data from a server asynchronously and update the content of a div without reloading the page.
+
+       jQuery: 1.jQuery is a fast, small, and feature-rich JavaScript library.
+               2.It makes things like HTML document traversal and manipulation, event handling, and animation much simpler with an easy-to-use API that works across a multitude of browsers.
+
+       JavaScript: JavaScript is a programming language that is one of the core technologies of the World Wide Web
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q88 what is optional true in associtaion?
+
+  Ans: the optional: true option is used in associations to indicate that the association is not mandatory, 
+       meaning the associated record can be nil. 
+       This is particularly useful in belongs_to associations where you want to allow the parent object to be absent.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q89 what is has_one :through associtaion in rails ?
+
+  Ans: the has_one :through association is used to set up a one-to-one connection with another model through a third model
+
+
+      For example:
+
+        1. rails generate model Supplier name:string
+           rails generate model Account supplier:references account_number:string
+           rails generate model AccountHistory account:references status:string
+
+        2. rails db:migrate
+
+        3. class Supplier < ApplicationRecord
+            has_one :account
+            has_one :account_history, through: :account
+          end
+
+          class Account < ApplicationRecord
+            belongs_to :supplier
+            has_one :account_history
+          end
+
+          class AccountHistory < ApplicationRecord
+            belongs_to :account
+          end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q90 Differnece between session and caching in rails ?
+
+  Ans: sessions and caching are both mechanisms to store data, but they serve different purposes and operate in different ways
+
+    Session: Sessions are used to keep track of information about a user as they navigate through your website. 
+             This data is specifically to each user and lasts across multiple pages they visit until they log out or their session expires.
+
+    Cache: Caching is used to store data that is expensive to generate or fetch, so it can be reused quickly. 
+           This data is not specific to a single user but can be used by many users to improve performance.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q91 Differnece between gem and rails engine?
+
+  Ans: gem is only a library that you can distribute and share with others. gem provide additional functionality
+
+      rails engine is can be a separate application work at as a plugin
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q92 what do you mean by rails engine? explain when we need to use a rails engine? also if you know, list a few gems which are engine are well.
+
+  Ans: 1.A Rails engine is a miniature Rails application that can be embedded within another Rails application. 
+         It provides a way to encapsulate reusable functionality that can be shared across different Rails applications
+
+       2. Rails engines allow you to package specific pieces of functionality (such as models, controllers, views, routes, and migrations) into a single unit 
+          that can be easily integrated into other Rails applications.
+
+       -> when we need
+
+          1. Reusability
+          2. Modularization
+          3. Isolation
+          4. Plug-and-Play
+
+       -> Popular Rails Engines (Gems)
+
+        1. Devise
+        2. Spree
+        3. Forem
+        4. ActiveAdmin
+        5. RefineryCMS
+        6. Solidus
+
+     -> Integrating an Engine
+
+      step1: gem 'my_engine', path: 'path/to/my_engine'
+      step2: bundle install
+      step3: # config/routes.rb
+            Rails.application.routes.draw do
+              mount MyEngine::Engine => "/my_engine"
+            end
+     -> create rail engine
+
+      step1: rails plugin new my_engine --mountable
+      step2: #lib/my_engine/engine.rb 
+            module MyEngine
+              class Engine < ::Rails::Engine
+                isolate_namespace MyEngine
+              end
+            end
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q93 Difference between Array and enumerater in rails ?
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q94 What is difference between authorisation and authentication?
+
+  Ans: 
+    Authentication: Authentication is the process of verifying the identity of a user or system. 
+       It answers the question, "Who are you?" The goal is to ensure that the entity trying to gain access is who they claim to be.
+
+    Authorisation: Authorization is the process of determining what an authenticated user or system is allowed to do. 
+                   It answers the question, "What are you allowed to do?" The goal is to ensure that once a user is authenticated, 
+                   they can only access resources and perform actions that they are permitted to.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Q95 what is config in rails ?
+
+  Ans: the config directory is a critical part of the application,s structure. 
+       It contains various configuration files and subdirectories that define the settings and behavior of the application. 
+       These configurations cover a wide range of aspects, including the environment settings, initializers, routes, database connections, and more.
