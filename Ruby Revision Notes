@@ -1,0 +1,310 @@
+Ruby Revision Notes:
+---------------------
+In summary, puts is for human-readable output with a newline added automatically, print is for printing multiple 
+items on the same line without adding a newline, and p is for debugging, providing a detailed representation of 
+an object and always printing a newline after the output.
+
+strings and symbols differ in several key aspects:
+-------------------------------------------------
+
+Mutability: Strings are mutable, while symbols are immutable.
+Memory Usage: Strings consume more memory as they are mutable and unique instances. Symbols are more memory-efficient since they are immutable and unique.
+Usage: Strings are ideal for representing variable data like user input, messages, etc. Symbols are commonly used as identifiers, such as keys in hashes or method names.
+Syntax: Strings are enclosed in quotes ("") or (''), while symbols are prefixed with a colon (:).
+# String
+str1 = "hello"
+str2 = "hello"
+puts str1.object_id == str2.object_id  # false, different objects
+
+# Symbol
+sym1 = :hello
+sym2 = :hello
+puts sym1.object_id == sym2.object_id  # true, same object
+
+_________________________________________________________________________
+CSRF (Cross-Site Request Forgery), here's a concise summary:
+_________________________________________________________________________
+CSRF Overview:
+1. CSRF is a type of attack where an attacker tricks a user into unintentionally submitting a request to a web application on which the user is authenticated.
+Rails includes built-in protection mechanisms against CSRF attacks.
+CSRF Token:
+----------
+Rails generates a unique CSRF token for each session and stores it in the session.
+When rendering forms in views, Rails automatically injects a hidden field containing the CSRF token into the form HTML.
+Upon form submission, the CSRF token is included in the request payload.
+
+Verification:
+-------------
+When a request is received, Rails compares the CSRF token included in the request with the one stored in the session.
+If the tokens match, the request is considered legitimate; otherwise, it is rejected.
+Rails automatically rotates the CSRF token on each request to enhance security.
+Implementation:
+--------------
+To implement CSRF protection in Rails, developers typically don't need to do anything as it's enabled by default.
+CSRF protection applies to all non-GET requests (e.g., POST, PUT, DELETE).
+Developers can exclude CSRF protection for specific controller actions, such as those handling API requests.
+<%csrf_meta_tags%> in layout
+form_authenticity_token in form
+
+Truthy and falsy in Ruby:
+-------------------------
+1.The only false values in Ruby are the values nil and false themselves.
+2.If you have experience with other programming languages, you might be familiar with the number 0 or an empty string (“”) being equivalent to false. This isn’t the case with Ruby, so be careful when writing those expressions, or you’ll have more bugs than a decomposing body.
+
+Using present?:
+---------------
+Use present? when you need to check if an object is present or not, meaning it is not nil and not blank (empty string, empty array, etc.).
+It's commonly used in conditionals to determine whether to proceed with certain actions based on the existence of an object.
+ruby
+Copy code
+if object.present?
+  # Do something with the object
+else
+  # Handle the case when the object is not present
+end
+
+Using presence:
+---------------
+
+Use presence when you want to return a non-nil value if the object is not blank (not nil or empty), otherwise return nil.
+It's useful when you want to return a default value if a particular object is blank.
+value = possibly_blank_value.presence || default_value
+In this example, if possibly_blank_value is nil or empty, presence returns nil, and default_value is assigned to value.
+
+
+Boolean logic:
+..............
+1.== (equals) returns true if the values compared are equal.
+2.!= (not equal) returns true if the values compared are not equal.
+3.#eql? checks both the value type and the actual value it holds.
+eg:
+ 5.eql?(5.0) #=> false; although they are the same value, one is an integer and the other is a float
+ 5.eql?(5)   #=> true
+4.#equal? checks whether both values are the exact same object in memory. This can be slightly confusing because of the way computers store some values for efficiency. Two variables pointing to the same number will usually return true.
+
+a = 5
+b = 5
+a.equal?(b) #=> true
+
+a = "hello"
+b = "hello"
+a.equal?(b) #=> false
+This happens because computers can’t store strings in the same efficient way they store numbers. Although the values of the variables are the same, the computer has created two separate string objects in memory
+
+5.<=> (spaceship operator) returns the following:
+
+-1 if the value on the left is less than the value on the right;
+0 if the value on the left is equal to the value on the right; and
+1 if the value on the left is greater than the value on the right.
+5 <=> 10    #=> -1
+10 <=> 10   #=> 0
+10 <=> 5    #=> 1
+
+---------------------------------------------------------------------------------------------------------------
+Loops Revision:
+---------------------------------------------------------------------------------------------------------------
+Type of loops in Ruby:
+loop, while, for, times, until, upto and downto
+1.  loop
+-----------------
+i = 0
+loop do
+  puts "i is #{i}"
+  i =+ 1
+  break if i == 5
+end
+
+2. while
+-------------------
+i = 0
+while i < 10 do
+ puts "i is #{i}"
+ i += 1
+end
+
+3.untill
+-------------------
+i = 0
+until i >= 10 do
+ puts "i is #{i}"
+ i += 1
+end
+ 4. for
+-------------------
+A for loop is used to iterate through a collection of information such as an array or range. These loops are useful if you need to do something a given number of times while also using an iterator.
+for i in 0...5
+  puts "#{i} zombies incoming!"
+end
+
+Range:
+------
+ 1..5 output = 1,2,3,4,5(this is inclusive)
+ 1...5 output = 1,2,3,4(this is exclusive)
+
+5. Times
+-------------------
+5.times do |number|
+  puts "Alternative fact number #{number}"
+end
+5.times do
+  puts "Hello, world!"
+end
+
+5.upto(10) { |num| print "#{num} " }     #=> 5 6 7 8 9 10
+
+10.downto(5) { |num| print "#{num} " }   #=> 10 9 8 7 6 5
+---------------------------------------------------------------------------------------------------------------
+
+Arrays:
+======
+Array.new               #=> []
+Array.new(3)            #=> [nil, nil, nil]
+Array.new(3, 7)         #=> [7, 7, 7]
+Array.new(3, true)      #=> [true, true, true]
+[].empty?               #=> true
+[[]].empty?             #=> false
+[1, 2].empty?           #=> false
+[1, 2, 3].length        #=> 3
+[1, 2, 3].reverse       #=> [3, 2, 1]
+[1, 2, 3].include?(3)   #=> true
+[1, 2, 3].include?("3") #=> false
+[1, 2, 3].join          #=> "123"
+[1, 2, 3].join("-")     #=> "1-2-3"
+
+---------------------------------------------------------------------------------------------------------------
+
+1. select: (retrun new array without change old array)
+  --------
+  This method is used to filter elements from an array or hash based on a condition. It returns a new collection containing only the elements for which the condition evaluates to true.
+  lets an example:
+  friends = ['A', 'Leo', 'Leila', 'Brian', 'Arun']
+  friends.select { |friend| friend != 'Brian' }
+  #=> ["Sharon", "Leo", "Leila", "Arun"]
+
+2. reject:(retrun new array without change old array)
+  --------
+  friends = ['Sharon', 'Leo', 'Leila', 'Brian', 'Arun']
+  friends.reject { |friend| friend == 'Brian' }
+  ["Sharon", "Leo", "Leila", "Arun"]
+
+3. collect:(collect and map both are same)
+  numbers = [1,2,3,4,5]
+  squ_num = numbers.collect {|num| num * num}
+  collect retrun the transform collection base on conditon
+
+  summarize:
+  Use select when you want to filter elements based on a condition.
+  Use collect (or map) when you want to transform each element in the collection using a block of code.
+
+Differnce bt each and map in ruby:
+
+1. each: 
+  friends = ['Sharon', 'Leo', 'Leila', 'Brian', 'Arun']
+  shouting_at_friends = []
+  friends.each { |friend| shouting_at_friends.push(friend.upcase) }
+  #=> ['Sharon', 'Leo', 'Leila', 'Brian', 'Arun']
+  shouting_at_friends #=> ['SHARON', 'LEO', 'LEILA', 'BRIAN', 'ARUN']
+
+2.map
+  map retrun new array without affecting the old array.
+  eg: new = friends.map {|friend| friend.upcase}
+  retrun ['SHARON', 'LEO', 'LEILA', 'BRIAN', 'ARUN']
+  my_order = ['medium Big Mac', 'medium fries', 'medium milkshake']
+  my_order.map { |item| item.gsub('medium', 'extra large') }
+  #=> ["extra large Big Mac", "extra large fries", "extra large milkshake"]
+  summarize:
+  While both methods iterate over a collection, the crucial distinction lies in their purposes: each is for iteration, while map is for transformation.
+  Both map and collect are widely used in Ruby, and they offer the same functionality, so you can choose whichever you find more readable or suitable for your code style. They both provide a clean and concise way to transform elements in a collection.
+
+  #include?, #any?, #many?, #none?, all? these method are apply on collection datatype only.
+_______________________________________________________________________________________________________________						                       Object oriented Programmming
+_______________________________________________________________________________________________________________
+Best Notes : https://launchschool.com/books/oo_ruby/read/inheritance#classinheritance
+
+include = work as instance method and first look in class if not getting method then looking included module
+prepend = work as instance method and first looking in mudule if not getting method in module then looking in class
+extent = wrok as class method
+
+Yield: The yield keyword passes control from the method to the block, executes the block, and then returns control back to the method.
+  def greet
+    puts "Hello, before yielding to the block"
+    yield if block_given?
+    puts "Hello, after yielding to the block"
+  end
+  greet { puts "Inside the block: Welcome to Ruby!" }
+
+Lamda Function:
+--------------
+  my_lamda = -> (a,b) { a + b }
+  or 
+  my_lambda = lambda { |a, b| a + b }
+  my_lamda.call(5,4) ==== 9
+  my_lamda.(5,4) ---:> 9
+  my_lamda[5,4]
+  Important point:
+  1. Also objects representing blocks of code.
+  2. Created using -> { } notation or lambda { }.
+  3. Strict argument checking; raises ArgumentError for wrong number of arguments.
+  4. Returning from a Lambda using return exits only the Lambda itself, allowing the method to continue executing.
+  5. Well-suited for situations where strict argument handling or isolated returns are necessary.
+
+Proc:
+-----
+  my_proc = Proc.new { |x, y| puts x * y }
+  my_proc.call(3, 4)
+
+  Important Point:
+  1. Objects representing blocks of code.
+  2. Created using Proc.new or proc { } notation.
+  3. More flexible with arguments, ignoring extras and assigning nil to missing ones.
+  4. Returning from a Proc using return exits not just the Proc but also the method enclosing it.
+  5. Useful for storing code blocks, passing them as objects, implementing custom control structures, or callbacks.
+_______________________________________________________________________________________________________________
+Authentication and authorization
+authentication is about verifying identity, and authorization is about granting permissions.
+Both are essential for securing web applications and ensuring users can only access the resources 
+and perform the actions they are allowed to.
+
+_________________________________________________________________________________________________________________
+def index_of_two_target_sum(arr, target)
+  for i in 0..(arr.length - 1) 
+    second = target - arr[i]
+    arr.each_with_index do |num, index|  
+      return [i, index] if second == num && i != index  
+    end    
+  end    
+end
+
+def index_of_two_target_sum(arr, target)
+  num_index_map = {}
+  arr.each_with_index do |num, index|
+    complement = target - num
+    if num_index_map.key?(complement)
+      return [num_index_map[complement], index]
+    end
+    num_index_map[num] = index
+  end
+  return nil
+end
+----------------------------------------------------------------------------------------------------------------------------
+
+def reverse_any_thing(anything)
+	reverse = ""
+	convert_in_string = anything.to_s
+	length = convert_in_string.length
+	for i in (length - 1).downto(0)
+	  reverse << convert_in_string[i]
+	end
+	return reverse
+end 
+
+def reverse_any_thing(anything)
+  reverse = ""
+  convert_in_string = anything.to_s
+  length = convert_in_string.length
+  (length - 1).downto(0) do |i|
+    reverse << convert_in_string[i]
+  end
+  return reverse
+end
+=============================================================================================================================
