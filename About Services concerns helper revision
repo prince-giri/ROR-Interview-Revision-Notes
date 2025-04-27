@@ -1,0 +1,119 @@
+Services:
+Concept: Keyword Arguments
+In Ruby, keyword arguments allow you to pass arguments to a method by specifying the parameter names along with their values.
+ This makes the code more readable and avoids errors that can arise from misordered arguments. Here’s a basic example:
+        def example_method(param1:, param2:)
+          puts "param1: #{param1}, param2: #{param2}"
+        end
+        
+        # Correct way to call the method with keyword arguments
+        example_method(param1: 'value1', param2: 'value2')
+        
+        # Incorrect way to call the method with positional arguments (raises an ArgumentError)
+        example_method('value1', 'value2')
+
+In Ruby, an initializer, defined by the initialize method, is automatically called when a new object of a class is created using the new method.
+It's responsible for setting up the initial state of the object, typically by initializing instance variables that define the object's attributes.
+The initialize method is flexible and allows for customized object initialization based on the provided arguments."
+
+In Rails, service objects help maintain a clean codebase by encapsulating complex business logic.
+This makes the code more modular, reusable, and easier to test.
+For example, an OrderPlacementService can handle the entire process of placing an order, including order creation, charging a credit card,
+and sending a confirmation email, thus keeping controllers and models focused and manageable.
+class OrderPlacementService
+  def initialize(user, order_params)
+    @user = user
+    @order_params = order_params
+  end
+  def call
+    ActiveRecord::Base.transaction do
+      create_order
+      charge_credit_card
+      send_confirmation_email
+    end
+  rescue StandardError => e
+    handle_error(e)
+    false
+  end
+  private
+
+  def create_order
+    @order = @user.orders.create!(@order_params)
+  end
+
+  def charge_credit_card
+    PaymentGateway.charge(@user, @order.total_price)
+  end
+
+  def send_confirmation_email
+    NotificationMailer.order_confirmation(@user, @order).deliver_later
+  end
+
+  def handle_error(error)
+    Rails.logger.error("Order placement failed: #{error.message}")
+  end
+end
+class OrdersController < ApplicationController
+  def create
+    service = OrderPlacementService.new(current_user, order_params)
+
+    if service.call
+      redirect_to @order, notice: 'Order was successfully placed.'
+    else
+      render :new, alert: 'Order placement failed.'
+    end
+  end
+  private
+
+  def order_params
+    params.require(:order).permit(:product_id, :quantity, :address)
+  end
+end
+==========================================================================================================================
+Concerns in Ruby on Rails are modules that encapsulate reusable pieces of functionality.
+They are commonly used to share code across multiple models, controllers, or other parts of the application.
+Concerns help keep the codebase clean, modular, and easier to maintain.
+Syntex
+module Searchable
+  extend ActiveSupport::Concern ==> This allows you to use some conveniences provided by ActiveSupport, such as the included block.
+
+  included do
+  	with in this block we can make method, callback, validation
+    scope :search, ->(query) { where("name LIKE ?", "%#{query}%") }
+  end
+end
+
+=============================================================================================================================
+
+In Ruby on Rails, helpers are modules or classes that contain methods to assist with generating views.
+They are primarily used to encapsulate reusable view-related logic and are commonly employed to format data for display,
+generate HTML elements, or perform other view-related tasks.
+
+# app/helpers/posts_helper.rb
+module PostsHelper
+  def formatted_date(date)
+    date.strftime("%B %d, %Y")
+  end
+end
+<!-- app/views/posts/show.html.erb -->
+<p>Published on <%= formatted_date(@post.published_at) %></p>
+
+# app/controllers/posts_controller.rb
+class PostsController < ApplicationController
+  include PostsHelper
+
+  def index
+    @formatted_date = formatted_date(Time.now)
+  end
+end
+
+While it's technically possible to use helpers in models, it's generally not recommended due to concerns about maintaining separation of concerns. Models should focus on data-related tasks and business logic, while helpers are intended for view-related tasks.
+
+# app/models/post.rb
+class Post < ApplicationRecord
+  include PostsHelper
+
+  def formatted_date
+    formatted_date(created_at)
+  end
+end
