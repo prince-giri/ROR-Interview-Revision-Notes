@@ -1,0 +1,28 @@
+project setup
+-----------------
+git clone url_name
+cd project_name
+------------------
+database setup
+rails db:create
+rails db:seed
+rails db:migrate
+-------------------
+#keep in mind not run migrate comand
+if you have dumpfile for database setup the follow
+method - 1 
+psql -h localhost -U postgres -p 5432 kitchenmate_development < /home/adware009/Downloads/dbexportopen.pgsql
+--------------------
+or
+--------------------
+method -2 
+sudo -u postgres psql
+psql
+\l #check list of database
+\c kitchenmate_development #connect database in which you want to create data
+\i (/home/adware/Downloads/dbexportopen.pgsql) #paste download file path
+
+**** To download dumpschema file ******
+pg_dump -U postgres -h localhost -p 5432 kitchenmate_development > dbexportholi.pgsql
+
+psql -h localhost -U postgres -p 5432 Crowd_development < /home/adware/Downloads/dbcrowd.psql
