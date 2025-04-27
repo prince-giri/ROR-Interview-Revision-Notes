@@ -1,0 +1,210 @@
+1. About params:
+---------------------------------------------------------------------------------------------------------
+   params is a hash-like object that contains all the parameters sent in an HTTP request.
+  These parameters can originate from various sources such as form submissions, query strings, URL segments,
+   and even request headers. The params object is essential for accessing and processing user input securely 
+  and efficiently in Rails controllers. It allows developers to retrieve and manipulate data submitted by users, 
+  facilitating actions like creating, updating, or deleting resources. Additionally, 
+  Rails provides mechanisms like strong parameters to enhance security by permitting only specified attributes
+   for mass assignment. Overall, params is a fundamental component in handling user input within Ruby on Rails
+   applications.
+_______________________________________________________________________________________________________
+2. Parameter Permitting in Rails:
+------------------------------------------------------------------------------------------------------
+  Essential for security.
+  Use permit method in controllers.
+  Specify allowed parameters for mass assignment.
+  Security Measure:
+  Prevents unauthorized data modification.
+  Only permitted attributes are updated or created.
+  Ignoring Unpermitted Parameters:
+  Rails disregards unpermitted parameters.
+  Ensures data integrity.
+  def create
+    @user = User.new(user_params)
+  end
+  private
+  def user_params
+    params.require(:user).permit(:name, :email)
+  end
+-----------------------------------------------------------------------------------------------------------
+3. Difference between PUT and PATCH
+-----------------------------------------------------------------------------------------------------------
+Difference between PUT and PATCH is in how they handle updates to resources. 
+PUT is used for replacing the entire resource, while PATCH is used for applying partial modifications to a resource.
+Both methods are important in RESTful APIs, and the choice between them depends on the specific requirements of your 
+application.
+--------------------------------------------------------------------------------------------------------------
+4. delegate
+--------------------------------------------------------------------------------------------------------------
+   class User < ApplicationRecord
+     has_one :profile
+     delegate :full_name, to: :profile
+   end
+   
+   class Profile < ApplicationRecord
+     belongs_to :user
+   
+     def full_name
+       "#{first_name} #{last_name}"
+     end
+   end
+In summary, delegate in Ruby on Rails is a powerful tool for delegating method calls between objects, especially in
+ActiveRecord associations, to keep your code DRY (Don't Repeat Yourself) and maintainable.
+--------------------------------------------------------------------------------------------------------------
+5. Delete Vs Destroy
+--------------------------------------------------------------------------------------------------------------
+Use delete if you want to quickly remove records from the database without triggering callbacks or validations.
+Use destroy if you need to ensure that all associated callbacks and validations are executed during the deletion
+process, even if it's slower.
+
+
+
+Model:
+Developers define models by creating Ruby classes that inherit from ActiveRecord::Base.
+Each attribute of the model class corresponds to a column in the database table
+and relationships between models are defined using associations.
+
+Active Record:
+is an Object-Relational Mapping (ORM) layer for interacting with databases.
+It allows developers to work with database records as objects in their Ruby code,
+abstracting away much of the complexity of SQL queries and database operations.
+Active Record is the M in MVC - the model - which is the layer of the system responsible for representing business data and logic.
+
+Object Relational Mapping: ORM, is a technique to easily stored and retrieved data from a database without writing SQL statements directly and with less overall database access code.
+1. map class with table
+2. map instance of class with row
+
+Naming Conventions;
+	Model Class - Singular with the first letter of each word capitalized (e.g., BookClub).
+	Database Table - Plural with underscores separating words (e.g., book_clubs).
+
+Schema Conventions;
+	1. Foreign keys - These fields should be named following the pattern singularized_table_name_id (e.g., item_id, order_id). These are the fields that
+	2. Primary keys - By default, Active Record will use an integer column named id as the table's primary key (bigint for PostgreSQL and MySQL, integer for SQLite). When using Active Record Migrations to create your tables, this column will be automatically created.
+
+
+Migration:
+Migrations are a feature of Active Record that allows you to evolve your database schema over time.
+Rather than write schema modifications in pure SQL, migrations allow you to use a Ruby DSL to describe changes to your tables.
+Generating Migrations:
+	1.Migrations are stored as files in the db/migrate directory
+	2.YYYYMMDDHHMMSS_create_products.rb
+	3. bin/rails generate migration AddPartNumberToProducts column_name:data_type:index
+		syntex: add_column :table_name, :column_name, data_type, default: false
+	4.rails generate migration RemovePartNumberFromProducts part_number:string
+		syntex: remove_column :table_name, column_name
+	5.bin/rails generate migration CreateProducts name:string part_number:string
+		syntex: 
+		class CreateProducts < ActiveRecord::Migration[7.1]
+		  def change
+		    create_table :products do |t|
+		      t.string :name
+		      t.string :part_number
+
+		      t.timestamps
+		    end
+		  end
+		end
+	6.bin/rails generate migration AddUserRefToProducts user:references
+		def change
+		  add_reference :products, :user, foreign_key: true
+		end
+	7. bin/rails generate migration CreateJoinTableCustomerProduct customer product
+		class CreateJoinTableCustomerProduct < ActiveRecord::Migration[7.1]
+		  def change
+		    create_join_table :customers, :products do |t|
+		      # t.index [:customer_id, :product_id]
+		      # t.index [:product_id, :customer_id]
+		    end
+		  end
+		end
+	8.bin/rails generate model Product name:string description:text
+	9. rails generate migration RenameOldColumnToNewColumnInTableName
+		rename_column :table_name, :old_column_name, :new_column_name
+	10. rails generate migration ChangeDataTypeOfColumnNameInTableName
+		change_column :table_name, :column_name, :new_data_type
+	11. bin/rails db:migrate VERSION=20080906120000
+	12. bin/rails db:migrate:down/up VERSION=20080906120000
+	13. bin/rails db:migrate:redo STEP=3
+	14. bin/rails db:migrate RAILS_ENV=test
+
+Validation:
+ We use Validation feature from active record to validate the state of objects before they go into the database.
+
+Callbacks:
+ a callback is a method that is automatically invoked at specific points during the lifecycle of an ActiveRecord object.
+ Callbacks allow you to trigger custom logic before or after certain operations, such as saving an object to the database,
+ validating its attributes, or destroying it.
+Rails provides a variety of callback methods that you can use to hook into different parts of an object's lifecycle.
+Some common callbacks include:
+1) before_validation: Called before validation occurs, allowing you to modify attributes or perform additional validation checks.
+2) after_validation: Called after validation occurs, allowing you to perform additional actions or clean up data.
+3) before_save: Called before an object is saved to the database. This is commonly used to set default values or perform additional processing on attributes.
+4) after_save: Called after an object is saved to the database. This is often used to trigger side effects or update related records.
+5) before_create: Called before a new record is created in the database. This is useful for performing actions that should only occur when a record is first created.
+6) after_create: Called after a new record is created in the database. This is typically used for actions that should only occur after the record has been successfully saved.
+7) before_destroy: Called before an object is destroyed (deleted) from the database. This is useful for performing cleanup tasks or checking for dependencies before deletion.
+8) after_destroy: Called after an object has been destroyed from the database. This is often used for triggering additional cleanup actions or updating related records.
+and many more...```
+Differences bt afer_save and after commit
+Timing:
+after_save: Runs immediately after the record is saved to the database, but before the transaction is committed.
+after_commit: Runs only after the transaction is successfully committed.
+Transaction Awareness:
+after_save: Does not wait for the transaction to be committed, so it can run even if the transaction eventually fails.
+after_commit: Runs only if the transaction is successful, ensuring the changes are permanent.
+Use Case:
+after_save: Useful for actions that should occur immediately after saving a record, regardless of transaction success (e.g., updating related data in-memory).
+after_commit: Ideal for actions that should only occur if the transaction is fully successful (e.g., sending emails, processing payments).
+
+Associations:
+ Active Record Associations in Ruby on Rails provide a way to define relationships between different models in your application.
+ These associations allow you to perform operations like querying, creating, updating, and deleting related records more easily and efficiently.
+There are several types of associations available in Rails:
+1) belongs_to:
+ Defines a one-to-one relationship where the declaring class (the "child" class) belongs to another class (the "parent" class).
+For example, a Comment belongs to a Post.
+
+2) has_one:
+ Defines a one-to-one relationship where the declaring class has one associated record of another class.
+ For example, a Profile has one User.
+
+3) has_many:
+ Defines a one-to-many relationship where the declaring class has many associated records of another class.
+ For example, a User has many Posts.
+4) has_many :through:
+ Defines a many-to-many relationship where the declaring class has many associated records through an intermediate model.
+ For example, a Student has many Courses through Enrollments.
+
+5) has_one :through: Defines a one-to-one relationship where the declaring class has one associated record through an intermediate model.
+ For example, a Supplier has one Account through AccountHistory.
+6) has_and_belongs_to_many (HABTM):
+ Defines a many-to-many relationship without an intermediate model.
+ This association is typically used when the relationship between two models is straightforward and doesn't require any additional attributes
+ on the join table. For example, a Book has and belongs to many Authors.
+
+Queries:
+1) find vs find_by:
+ find fetches records on the basis of primary key on the other hand find_by fetches the record on the basis of specific attributes.
+ Find returns an active record error exception if the record was not found while find_by return the nil if the record was not found.
+2) find_each vs find_in_batches:
+find_each and find_in_batches both methods retrieve batches of records. It retrieve 1000 records at a time if the batch_size is not specified.
+Both are almost same, The difference is that find_in_batches yields batches to the block as an array of models, instead of individually.
+Both methods are used to prevent large memory consumption.
+For more details please visit https://guides.rubyonrails.org/active_record_querying.html#retrieving-multiple-objects-in-batches
+3) where.not: If a query has a hash condition with non-nil values on a nullable column
+, the records that have nil values on the nullable column won't be returned.
+4) pluck vs select: 
+    1) pluck:
+        a) The pluck method is used to retrieve specific attribute values from database records.
+        b) It returns an array of values for the specified attribute(s) from the database, rather than ActiveRecord objects.
+        c) It generates a SQL query that fetches only the specified attribute(s), which can be more efficient than retrieving full ActiveRecord objects if you only need certain attribute values.
+        d) pluck can be especially useful when you only need specific attribute values for further processing, such as calculations or rendering in views.
+    2) select:
+        a) The select method is used to retrieve full ActiveRecord objects from the database, with optional conditions.
+        b) It returns an ActiveRecord::Relation, allowing you to chain additional ActiveRecord query methods
+            (such as where, order, joins, etc.).
+        c) It generates a SQL query that fetches entire records from the database, based on the specified conditions.
+        d) select is typically used when you need to retrieve full ActiveRecord objects and perform further operations on them,
+            such as updating attributes, deleting records, or eager loading associations.
